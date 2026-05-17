@@ -45,7 +45,7 @@ class WineAppBuilder(Gtk.Application):
         box.append(self.name_entry)
 
         self.create_btn = Gtk.Button(label="Integrate System Application")
-        self.create_btn.add_css_class("suggested-action") # Makes button blue/green
+        self.create_btn.add_css_class("suggested-action")
         self.create_btn.connect("clicked", self.on_create_clicked)
         box.append(self.create_btn)
 
@@ -111,7 +111,6 @@ class WineAppBuilder(Gtk.Application):
             if os.path.isfile(icon_path):
                 icon_value = f"wine-{safe_name}"
             else:
-                # Secondary loose extraction attempt if strict 256 fails
                 wrestool = subprocess.Popen(["wrestool", "-x", "-t", "14", exe_path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 icotool = subprocess.Popen(["icotool", "-x", "-o", icon_dir, "-"], stdin=wrestool.stdout, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 wrestool.stdout.close()
