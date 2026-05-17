@@ -14,11 +14,9 @@ class WineAppBuilder(Gtk.Application):
                          flags=Gio.ApplicationFlags.FLAGS_NONE)
 
     def do_activate(self):
-        # Main Window Setup
         self.win = Gtk.ApplicationWindow(application=self, title="Wine App Builder")
         self.win.set_default_size(450, 250)
 
-        # Main Layout Container
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_margin_top(15)
         box.set_margin_bottom(15)
@@ -26,7 +24,6 @@ class WineAppBuilder(Gtk.Application):
         box.set_margin_end(15)
         self.win.set_child(box)
 
-        # --- Row 1: EXE Selection ---
         exe_label = Gtk.Label(label="Select Windows Executable (.exe):", xalign=0)
         box.append(exe_label)
 
@@ -41,30 +38,25 @@ class WineAppBuilder(Gtk.Application):
         browse_btn.connect("clicked", self.on_browse_clicked)
         file_box.append(browse_btn)
 
-        # --- Row 2: App Name ---
         name_label = Gtk.Label(label="Application Display Name:", xalign=0)
         box.append(name_label)
 
         self.name_entry = Gtk.Entry()
         box.append(self.name_entry)
 
-        # --- Row 3: Action Button ---
         self.create_btn = Gtk.Button(label="Integrate System Application")
         self.create_btn.add_css_class("suggested-action") # Makes button blue/green
         self.create_btn.connect("clicked", self.on_create_clicked)
         box.append(self.create_btn)
 
-        # --- Row 4: Status Indicator ---
         self.status_label = Gtk.Label(label="", xalign=0.5)
         box.append(self.status_label)
 
         self.win.present()
 
     def on_browse_clicked(self, widget):
-        # Open GTK 4 File Dialog
         dialog = Gtk.FileDialog(title="Choose a Wine .exe File")
         
-        # Add .exe filter
         exe_filter = Gtk.FileFilter()
         exe_filter.set_name("Windows Executables (*.exe)")
         exe_filter.add_pattern("*.exe")
@@ -80,13 +72,11 @@ class WineAppBuilder(Gtk.Application):
             file_path = file.get_path()
             self.exe_entry.set_text(file_path)
             
-            # Auto-fill suggested name from the filename
             base_name = os.path.splitext(os.path.basename(file_path))[0]
-            # Capitalize words nicely for the user
             suggested_name = " ".join(word.capitalize() for word in base_name.replace('_', ' ').replace('-', ' ').split())
             self.name_entry.set_text(suggested_name)
         except Exception:
-            pass # User cancelled dialog
+            pass
 
     def on_create_clicked(self, widget):
         exe_path = self.exe_entry.get_text().strip()
@@ -100,11 +90,9 @@ class WineAppBuilder(Gtk.Application):
             self.show_status("Error: Invalid .exe file path!", error=True)
             return
 
-        # Sanitize name for filenames
         safe_name = re.sub(r'[^a-zA-Z0-9_-]', '', app_name.lower().replace(' ', '-'))
         exe_dir = os.path.dirname(exe_path)
 
-        # Define Paths
         app_dir = os.path.expanduser("~/.local/share/applications")
         icon_dir = os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps")
         os.makedirs(app_dir, exist_ok=True)
@@ -113,7 +101,6 @@ class WineAppBuilder(Gtk.Application):
         desktop_file = os.path.join(app_dir, f"wine-{safe_name}.desktop")
         icon_path = os.path.join(icon_dir, f"wine-{safe_name}.png")
 
-        # Extract Icon using icoutils pipeline
         icon_value = "wine"
         try:
             wrestool = subprocess.Popen(["wrestool", "-x", "-t", "14", exe_path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -130,19 +117,16 @@ class WineAppBuilder(Gtk.Application):
                 wrestool.stdout.close()
                 icotool.communicate()
                 
-                # Check if files were spilled and pick the biggest one
                 extracted_files = [os.path.join(icon_dir, f) for f in os.listdir(icon_dir) if f.endswith('.png') and not f.startswith('wine-')]
                 if extracted_files:
                     biggest_file = max(extracted_files, key=os.path.getsize)
                     os.rename(biggest_file, icon_path)
                     icon_value = f"wine-{safe_name}"
-                    # Clean up remaining fragments
                     for f in extracted_files:
                         if os.path.exists(f): os.remove(f)
         except Exception:
-            pass # Fall back safely to default wine icon
+            pass 
 
-        # Generate standard .desktop app entry
         desktop_content = f"""[Desktop Entry]
 Type=Application
 Name={app_name}
@@ -160,7 +144,6 @@ Categories=Wine;X-Wine-Programs;Application;
                 f.write(desktop_content)
             os.chmod(desktop_file, 0o755)
             
-            # Notify System Desktop database of the addition
             subprocess.run(["update-desktop-database", app_dir], stderr=subprocess.DEVNULL)
             self.show_status(f"Success! '{app_name}' is now a system app.", error=False)
         except Exception as e:
